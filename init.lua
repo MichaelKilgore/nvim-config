@@ -44,6 +44,7 @@ rtp:prepend(lazypath)
 --
 -- NOTE: Here is where you install your plugins.
 require('lazy').setup({
+  { import = 'plugins' },
   'NMAC427/guess-indent.nvim', -- Detect tabstop and shiftwidth automatically
   {
     'lewis6991/gitsigns.nvim',
@@ -165,6 +166,12 @@ require('lazy').setup({
         --   },
         -- },
         -- pickers = {}
+        defaults = {
+          file_ignore_patterns = {
+            '.*/__pycache__/.*',
+            '.*/__init__.py',
+          },
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -245,7 +252,7 @@ require('lazy').setup({
       'saghen/blink.cmp',
 
       -- Java IDE extension
-      'mfussenegger/nvim-jdtls',
+      --'mfussenegger/nvim-jdtls',
     },
     config = function()
       vim.api.nvim_create_autocmd('LspAttach', {
@@ -345,6 +352,7 @@ require('lazy').setup({
       -- Diagnostic Config
       -- See :help vim.diagnostic.Opts
       vim.diagnostic.config {
+        update_in_insert = false,
         severity_sort = true,
         float = { border = 'rounded', source = 'if_many' },
         underline = { severity = vim.diagnostic.severity.ERROR },
@@ -357,17 +365,9 @@ require('lazy').setup({
           },
         } or {},
         virtual_text = {
+          current_line = true,
           source = 'if_many',
           spacing = 2,
-          format = function(diagnostic)
-            local diagnostic_message = {
-              [vim.diagnostic.severity.ERROR] = diagnostic.message,
-              [vim.diagnostic.severity.WARN] = diagnostic.message,
-              [vim.diagnostic.severity.INFO] = diagnostic.message,
-              [vim.diagnostic.severity.HINT] = diagnostic.message,
-            }
-            return diagnostic_message[diagnostic.severity]
-          end,
         },
       }
 
@@ -389,7 +389,34 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        -- pyright = {},
+        pyright = {
+          settings = {
+            python = {
+              analysis = {
+                -- fewer files scanned + less background analysis
+                autoSearchPaths = true,
+                useLibraryCodeForTypes = true,
+                diagnosticMode = 'openFilesOnly', -- huge speed win in big repos
+                typeCheckingMode = 'basic', -- "off" is fastest, "strict" is slowest
+
+                -- keep pyright out of huge dirs (adjust to your repo)
+                exclude = {
+                  '**/__pycache__',
+                  '**/.pytest_cache',
+                  '**/.mypy_cache',
+                  '**/.ruff_cache',
+                  '**/.venv',
+                  '**/venv',
+                  '**/.tox',
+                  '**/site-packages',
+                  '**/dist',
+                  '**/build',
+                  '**/node_modules',
+                },
+              },
+            },
+          },
+        },
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -432,7 +459,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
-        'jdtls',
+        -- 'jdtls',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -562,13 +589,17 @@ require('lazy').setup({
       completion = {
         -- By default, you may press `<c-space>` to show the documentation.
         -- Optionally, set `auto_show = true` to show the documentation after a delay.
-        documentation = { auto_show = false, auto_show_delay_ms = 500 },
+        documentation = { auto_show = false, auto_show_delay_ms = 100 },
       },
 
       sources = {
         default = { 'lsp', 'path', 'snippets', 'lazydev' },
         providers = {
-          lazydev = { module = 'lazydev.integrations.blink', score_offset = 100 },
+          lsp = {
+            async = true,
+            timeout_ms = 50, -- try 100–300
+          },
+          lazydev = { module = 'lazydev.integrations.blink', score_offset = 20 },
         },
       },
 
@@ -679,6 +710,21 @@ require('lazy').setup({
     'scalameta/nvim-metals',
     dependencies = { 'nvim-lua/plenary.nvim' },
     ft = { 'scala', 'sbt', 'java' },
+  },
+  -- lazy.nvim
+  {
+    'robitx/gp.nvim',
+    config = function()
+      local conf = {
+        -- For customization, refer to Install > Configuration in the Documentation/Readme
+        default_chat_agent = 'ChatGPT4o',
+      }
+      require('gp').setup(conf)
+
+      vim.keymap.set('n', 'gpt', '<cmd>GpChatNew popup<CR>', { silent = true })
+
+      -- Setup shortcuts here (see Usage > Shortcuts in the Documentation/Readme)
+    end,
   },
 }, {
   ui = {
