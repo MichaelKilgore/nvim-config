@@ -21,7 +21,64 @@ return {
         automatic_installation = true,
       }
 
-      dapui.setup() -- UI layout/panels :contentReference[oaicite:5]{index=5}
+      local large_layout = {
+        layouts = {
+          {
+            elements = {
+              {
+                id = 'repl',
+                size = 1.0,
+              },
+            },
+            position = 'left',
+            size = 80,
+          },
+          {
+            elements = {
+              {
+                id = 'console',
+                size = 1.0,
+              },
+            },
+            position = 'bottom',
+            size = 15,
+          },
+        },
+      }
+
+      local small_layout = {
+        layouts = {
+          {
+            elements = {
+              {
+                id = 'repl',
+                size = 1.0,
+              },
+            },
+            position = 'left',
+            size = 40,
+          },
+          {
+            elements = {
+              {
+                id = 'console',
+                size = 1.0,
+              },
+            },
+            position = 'bottom',
+            size = 10,
+          },
+        },
+      }
+
+      local function open_dapui_layout(layout)
+        dapui.close()
+        dapui.setup(layout)
+        dapui.open()
+      end
+
+      dapui.setup(large_layout)
+      -- dapui.setup() -- UI layout/panels :contentReference[oaicite:5]{index=5}
       require('nvim-dap-virtual-text').setup()
 
       -- Auto-open/close the UI when debugging starts/stops
@@ -66,6 +123,16 @@ return {
 
       -- Keymaps (change to taste)
       local map = vim.keymap.set
+      map('n', '<leader>dcl', function()
+        open_dapui_layout(large_layout)
+      end)
+      map('n', '<leader>dcs', function()
+        open_dapui_layout(small_layout)
+      end)
+      map('n', '<leader>dcn', function()
+        open_dapui_layout {}
+      end)
+
       map('n', '<F4>', function()
         dap.close()
         dapui.close()
@@ -76,10 +143,10 @@ return {
       map('n', '<F10>', function()
         dap.step_over()
       end)
-      map('n', '<F11>', function()
+      map('n', '<F12>', function()
         dap.step_into()
       end)
-      map('n', '<F12>', function()
+      map('n', '<F11>', function()
         dap.step_out()
       end)
       map('n', '<leader>b', function()

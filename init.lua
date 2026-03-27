@@ -168,8 +168,13 @@ require('lazy').setup({
         -- pickers = {}
         defaults = {
           file_ignore_patterns = {
-            '.*/__pycache__/.*',
+            '__pycache__/',
             '.*/__init__.py',
+            -- 'venv/',
+            'lightning_logs/',
+            '.*/checkpoints/.*',
+            '.*/*.png',
+            '.*/*.iml',
           },
         },
         extensions = {
@@ -237,6 +242,7 @@ require('lazy').setup({
   {
     -- Main LSP Configuration
     'neovim/nvim-lspconfig',
+    lazy = false,
     dependencies = {
       -- Automatically install LSPs and related tools to stdpath for Neovim
       -- Mason must be loaded before its dependents so we need to set it up here.
@@ -396,28 +402,16 @@ require('lazy').setup({
                 -- fewer files scanned + less background analysis
                 autoSearchPaths = true,
                 useLibraryCodeForTypes = true,
-                diagnosticMode = 'openFilesOnly', -- huge speed win in big repos
+                diagnosticMode = 'workspace', -- huge speed win in big repos
                 typeCheckingMode = 'basic', -- "off" is fastest, "strict" is slowest
 
                 -- keep pyright out of huge dirs (adjust to your repo)
-                exclude = {
-                  '**/__pycache__',
-                  '**/.pytest_cache',
-                  '**/.mypy_cache',
-                  '**/.ruff_cache',
-                  '**/.venv',
-                  '**/venv',
-                  '**/.tox',
-                  '**/site-packages',
-                  '**/dist',
-                  '**/build',
-                  '**/node_modules',
-                },
+                exclude = {},
               },
             },
           },
         },
-        -- rust_analyzer = {},
+        rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -464,7 +458,7 @@ require('lazy').setup({
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
       require('mason-lspconfig').setup {
-        automatic_enable = false,
+        automatic_enable = true,
       }
 
       for server_name, server in pairs(servers) do
@@ -684,7 +678,6 @@ require('lazy').setup({
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
-    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
       ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
@@ -724,6 +717,30 @@ require('lazy').setup({
       vim.keymap.set('n', 'gpt', '<cmd>GpChatNew popup<CR>', { silent = true })
 
       -- Setup shortcuts here (see Usage > Shortcuts in the Documentation/Readme)
+    end,
+  },
+  {
+    'nvimtools/hydra.nvim',
+    config = function()
+      local Hydra = require 'hydra'
+
+      Hydra {
+        name = 'Window move',
+        mode = 'n',
+        body = '<leader>l',
+        config = {
+          color = 'pink',
+          hint = false,
+        },
+        heads = {
+          { 'h', '<C-w><' },
+          { 'j', '<C-w>-' },
+          { 'k', '<C-w>+' },
+          { 'l', '<C-w>>' },
+          { 'q', nil, { exit = true } },
+          { '<Esc>', nil, { exit = true } },
+        },
+      }
     end,
   },
 }, {
