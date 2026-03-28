@@ -706,20 +706,6 @@ require('lazy').setup({
   },
   -- lazy.nvim
   {
-    'robitx/gp.nvim',
-    config = function()
-      local conf = {
-        -- For customization, refer to Install > Configuration in the Documentation/Readme
-        default_chat_agent = 'ChatGPT4o',
-      }
-      require('gp').setup(conf)
-
-      vim.keymap.set('n', 'gpt', '<cmd>GpChatNew popup<CR>', { silent = true })
-
-      -- Setup shortcuts here (see Usage > Shortcuts in the Documentation/Readme)
-    end,
-  },
-  {
     'nvimtools/hydra.nvim',
     config = function()
       local Hydra = require 'hydra'
@@ -742,6 +728,38 @@ require('lazy').setup({
         },
       }
     end,
+  },
+  {
+    'olimorris/codecompanion.nvim',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+    },
+    opts = {
+      interactions = {
+        chat = {
+          adapter = 'anthropic',
+          model = 'claude-sonnet-4-20250514',
+        },
+        cli = {
+          agent = 'claude_code',
+          agents = {
+            claude_code = {
+              cmd = 'claude',
+              args = {},
+              description = 'Claude Code CLI',
+              provider = 'terminal',
+            },
+          },
+        },
+        inline = {
+          adapter = 'anthropic',
+        },
+      },
+      -- NOTE: The log_level is in `opts.opts`
+      opts = {
+        log_level = 'DEBUG',
+      },
+    },
   },
 }, {
   ui = {
