@@ -30,6 +30,38 @@ vim.o.showmode = false
 --  See `:help 'clipboard'`
 vim.schedule(function()
   vim.o.clipboard = 'unnamedplus'
+
+  -- Inside the `sbx` sandbox we run as the `_sbx` user, which is outside the
+  -- GUI login session, so `pbcopy`/`pbpaste` can't reach the macOS pasteboard
+  -- and clipboard yanks silently fail. Detect the sandbox and route the clipboard
+  -- through OSC 52 escape sequences instead, which the terminal emulator (running
+  -- as the real user) copies to the system clipboard. Locally we leave the default
+  -- provider (`pbcopy`/`pbpaste`) alone since it already works and is faster.
+  local in_sbx = vim.env.USER == '_sbx' or (vim.env.HTTP_PROXY or ''):match 'sbx%-proxy' ~= nil
+
+  if in_sbx then
+    local osc52 = require 'vim.ui.clipboard.osc52'
+    vim.g.clipboard = {
+      name = 'OSC 52 (sbx)',
+      copy = {
+        ['+'] = osc52.copy '+',
+        ['*'] = osc52.copy '*',
+      },
+      -- Many terminals only support OSC 52 writes, not reads, and a read attempt
+      -- can hang waiting for a response. Paste from Neovim's own register instead
+      -- so `p` still works predictably; use Cmd+V to paste OS clipboard into the terminal.
+      paste = {
+        ['+'] = function()
+          local reg = vim.fn.getreg '"'
+          return { vim.split(reg, '\n'), vim.fn.getregtype '"' }
+        end,
+        ['*'] = function()
+          local reg = vim.fn.getreg '"'
+          return { vim.split(reg, '\n'), vim.fn.getregtype '"' }
+        end,
+      },
+    }
+  end
 end)
 
 -- Enable break indent
@@ -84,3 +116,5 @@ vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 vim.opt.expandtab = true
 vim.opt.softtabstop = 2
+
+vim.g.python3_host_prog = '/Users/mkilgore/.pyenv/versions/3.11.x/bin/python3'

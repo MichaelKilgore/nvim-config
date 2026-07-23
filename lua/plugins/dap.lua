@@ -97,6 +97,27 @@ return {
       local mason_py = vim.fn.stdpath 'data' .. '/mason/packages/debugpy/venv/bin/python'
       require('dap-python').setup(mason_py)
 
+      dap.configurations.python = {
+        {
+          name = 'Launch file',
+          type = 'python',
+          request = 'launch',
+          program = '${file}',
+          pythonPath = require('dap-python').resolve_python,
+        },
+        {
+          name = 'Attach to debugpy (docker)',
+          type = 'python',
+          request = 'attach',
+          connect = { host = '127.0.0.1', port = 5678 },
+          pathMappings = {
+            -- Change localRoot to your absolute host path for the repo's app dir
+            -- { localRoot = '/Users/mkilgore/workspace/src/microservices/cloud_run/sample_cloud_run/app', remoteRoot = '/app/app' },
+            { localRoot = '/Users/mkilgore/workspace/src/microservices/cloud_run/program_api/app', remoteRoot = '/app/app' },
+          },
+        },
+      }
+
       -- Launch your code with your *project* venv if available (otherwise python3)
       -- nvim-dap-python will also try to auto-detect common venvs :contentReference[oaicite:7]{index=7}
       require('dap-python').resolve_python = function()

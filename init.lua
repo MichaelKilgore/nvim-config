@@ -680,7 +680,7 @@ require('lazy').setup({
     build = ':TSUpdate',
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'yaml' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -729,36 +729,90 @@ require('lazy').setup({
       }
     end,
   },
+  -- 1. The core backend (Suggestions disabled)
+  {
+    'zbirenbaum/copilot.lua',
+    cmd = 'Copilot',
+    event = 'InsertEnter',
+    config = function()
+      require('copilot').setup {
+        -- Disable both ghost text and panel suggestions entirely
+        suggestion = { enabled = false },
+        panel = { enabled = false },
+
+        copilot_node_command = '/Users/mkilgore/.nvm/versions/node/v22.23.1/bin/node',
+      }
+    end,
+  },
   {
     'olimorris/codecompanion.nvim',
     dependencies = {
       'nvim-lua/plenary.nvim',
+      'nvim-treesitter/nvim-treesitter',
+      { 'MeanderingProgrammer/render-markdown.nvim', ft = { 'markdown', 'codecompanion' } },
     },
-    opts = {
-      interactions = {
-        chat = {
-          adapter = 'anthropic',
-          model = 'claude-sonnet-4-20250514',
-        },
-        cli = {
-          agent = 'claude_code',
-          agents = {
-            claude_code = {
-              cmd = 'claude',
-              args = {},
-              description = 'Claude Code CLI',
-              provider = 'terminal',
+    init = function()
+      vim.env['CODECOMPANION_TOKEN_PATH'] = vim.fn.expand '~/.config'
+    end,
+    config = function()
+      require('codecompanion').setup {
+        strategies = {
+          chat = {
+            adapter = {
+              name = 'copilot',
+              model = 'claude-opus-4.8',
+            },
+          },
+          inline = {
+            adapter = {
+              name = 'copilot',
+              model = 'claude-opus-4.8',
             },
           },
         },
-        inline = {
-          adapter = 'anthropic',
+
+        -- The Rules Engine
+        rules = {
+          global_skills = {
+            description = 'Global Shared Copilot System Skills',
+            enabled = true,
+            parser = 'CodeCompanion',
+            files = {
+              -- '**/*.md' recursively crawls into /github-review/, /jira-tickets/, etc.
+              { path = vim.fn.expand '~/.copilot/skills', files = '**/*.md' },
+            },
+            is_preset = true,
+          },
+
+          -- 1. Global Rule Settings
+          opts = {
+            chat = {
+              -- CRUCIAL: Instructs CodeCompanion to automatically bind both sets of rules
+              -- to EVERY single chat buffer on startup without manual toggles.
+              autoload = { 'global_skills' },
+              enabled = true,
+              tools = {
+                opts = {
+                  -- Disables the interactive approval menu for the shell tool
+                  auto_submit = true,
+                },
+                run_command = {
+                  opts = {
+                    -- Treats run_command as an implicitly trusted tool
+                    require_approval_before = false,
+                    user_approval = false,
+                  },
+                },
+              },
+            },
+          },
         },
-      },
-      -- NOTE: The log_level is in `opts.opts`
-      opts = {
-        log_level = 'DEBUG',
-      },
+      }
+    end,
+    keys = {
+      { '<leader>cc', '<cmd>CodeCompanionChat Toggle<cr>', desc = 'AI Chat - Toggle' },
+      { '<leader>ca', '<cmd>CodeCompanionActions<cr>', mode = { 'n', 'v' }, desc = 'AI Actions Palette' },
+      { '<leader>ce', '<cmd>CodeCompanion<cr>', mode = { 'n', 'v' }, desc = 'AI Inline Edit' },
     },
   },
 }, {
@@ -782,6 +836,13 @@ require('lazy').setup({
     },
   },
 })
+
+-- Copy relative file path to system clipboard
+vim.keymap.set('n', '<leader>p', function()
+  local path = vim.fn.expand '%'
+  vim.fn.setreg('+', path)
+  vim.notify('Copied: ' .. path)
+end, { desc = 'Copy relative file path to clipboard' })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
