@@ -32,16 +32,23 @@ vim.schedule(function()
   vim.o.clipboard = 'unnamedplus'
 
   -- Choose a clipboard backend that works everywhere, including inside containers
-  -- such as the `sbx` Docker sandbox, where there is no native clipboard tool and
-  -- `pbcopy`/`pbpaste` don't exist. If a native provider is available (macOS
-  -- `pbcopy`, or Linux `wl-copy`/`xclip`/`xsel`) we let Neovim use it as usual.
-  -- Otherwise fall back to OSC 52, which sends the yanked text to the terminal
-  -- emulator as an escape sequence so it lands on the real system clipboard even
-  -- across the sandbox boundary.
+  -- such as the `sbx` Docker sandbox, where there is no usable native clipboard.
+  -- A clipboard binary being installed isn't enough: containers often ship `xclip`
+  -- with no X server (`$DISPLAY` empty), or set `$WAYLAND_DISPLAY` with no
+  -- `wl-copy`, so the tool exists but silently fails. Only treat a provider as
+  -- usable when its binary AND its display are both present. Otherwise fall back
+  -- to OSC 52, which sends the yanked text to the terminal emulator as an escape
+  -- sequence so it reaches the real system clipboard across the sandbox boundary.
   local function has(bin)
     return vim.fn.executable(bin) == 1
   end
-  local has_native = has 'pbcopy' or has 'wl-copy' or has 'xclip' or has 'xsel'
+  local function nonempty(name)
+    local v = vim.env[name]
+    return v ~= nil and v ~= ''
+  end
+  local has_native = has 'pbcopy' -- macOS
+    or (nonempty 'WAYLAND_DISPLAY' and has 'wl-copy') -- Wayland
+    or (nonempty 'DISPLAY' and (has 'xclip' or has 'xsel')) -- X11
 
   if not has_native then
     local osc52 = require 'vim.ui.clipboard.osc52'
